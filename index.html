@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no">
+	
+	<link rel="stylesheet" type="text/css" href="style/style.css">
+	
+	<script type='text/javascript'>
+		var Module = null;
+	
+		function CreateNode (nodeIndex)
+		{
+			var createNodeFunc = Module.cwrap ('CreateNode', null, ['number']);
+			createNodeFunc (nodeIndex);
+		}
+		
+		function BuildMenu (menuDiv)
+		{
+			function CreateItem (imgSrc, text)
+			{
+				var mainItem = document.createElement ('div');
+				mainItem.className = 'menuitem';
+				var imgItem = document.createElement ('img');
+				imgItem.src = 'images/' + imgSrc;
+				mainItem.appendChild (imgItem);
+				var textItem = document.createElement ('span');
+				textItem.innerHTML = text;
+				mainItem.appendChild (textItem);
+				var result = {
+					mainItem : mainItem,
+					imgItem : imgItem,
+					textItem : textItem
+				};
+				return result;
+			}
+		
+			function AddTitleItem (menuDiv, text)
+			{
+				var item = CreateItem ('folder_opened.png', text);
+				menuDiv.appendChild (item.mainItem);
+				var menuItems = document.createElement ('div');
+				menuItems.className = 'subitems';
+				menuDiv.appendChild (menuItems);
+				
+				item.mainItem.onclick = function () {
+					if (menuItems.style.display != 'none') {
+						menuItems.style.display = 'none';
+						item.imgItem.src = 'folder_closed.png';
+					} else {
+						menuItems.style.display = 'block';
+						item.imgItem.src = 'folder_opened.png';
+					}
+				}
+				
+				return menuItems;
+			}
+			
+			function AddMenuItem (menuDiv, text, nodeIndex)
+			{
+				var item = CreateItem ('plus.png', text);
+				menuDiv.appendChild (item.mainItem);
+				item.mainItem.onclick = function () {
+					CreateNode (nodeIndex);
+				}
+			}			
+			
+			var inputs = AddTitleItem (menuDiv, 'Inputs');
+			AddMenuItem (inputs, 'Integer', 0);
+			AddMenuItem (inputs, 'Number', 1);
+			AddMenuItem (inputs, 'Integer Increment', 2);
+			AddMenuItem (inputs, 'Number Increment', 3);
+			AddMenuItem (inputs, 'Number Distribution', 4);
+			
+			var arithmetics = AddTitleItem (menuDiv, 'Arithmetics');
+			AddMenuItem (arithmetics, 'Addition', 5);
+			AddMenuItem (arithmetics, 'Subtraction', 6);
+			AddMenuItem (arithmetics, 'Multiplication', 7);
+			AddMenuItem (arithmetics, 'Division', 8);
+			
+			var other = AddTitleItem (menuDiv, 'Other');
+			AddMenuItem (other, 'Viewer', 9);
+		}
+		
+		window.onload = function ()
+		{
+			var menuDiv = document.getElementById ('menu');
+			BuildMenu (menuDiv);
+		}
+	</script>
+</head>
+
+<body>
+	<div class="frame">
+		<div class="title">VisualScriptEngineWeb</div>
+		<div class="text">This is a demo of the <a href="https://emscripten.org">Emscripten</a> port of <a href="https://github.com/kovacsv/VisualScriptEngine">VisualScriptEngine</a>. You can add nodes from the list on the left and then you can connect the nodes on the editor canvas. More information on GitHub: <a href="https://github.com/kovacsv/VisualScriptEngineWeb">VisualScriptEngineWeb</a>.</div>
+		<div class="editor">
+			<div class="menu" id="menu">
+			</div>
+			<canvas id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
+			<div class="hint">
+				Keyboard shortcuts: Escape, Delete, Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+G, Ctrl+Z, Ctrl+Y.
+			</div>
+		</div>
+	</div>
+	<script type='text/javascript'>
+		Module = {
+			canvas : (function () {
+				return document.getElementById ('canvas');
+			}) ()
+		};
+	</script>
+	<script src="WebApp.js"></script>
+</body>
+
+</html>

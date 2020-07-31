@@ -1,0 +1,81 @@
+html, body
+{
+	color : #000000;
+	background : #ffffff;
+	font-size : 14px;
+	font-family : Arial, cursive;
+	margin : 0px;
+	padding : 0px;
+}
+
+div.editor
+{
+
+}
+
+div.frame
+{
+	width : 902px;
+	margin : 20px auto;
+}
+
+div.menu
+{
+	width : 190px;
+	margin-right : 10px;
+	float : left;
+}
+
+div.menuitem
+{
+	padding : 5px 10px;
+	cursor : pointer;
+}
+
+div.subitems
+{
+	margin-left : 20px;
+}
+
+div.menutitle img, div.menuitem img
+{
+	margin-right : 3px;
+	margin-bottom : -4px;
+}
+
+div.title
+{
+	font-size : 2.0em;
+	margin-bottom : 0.8em;
+}
+
+div.text
+{
+	margin : 1.5em 0;
+	line-height : 1.6em;
+}
+
+div.hint
+{
+	color : #aaaaaa;
+	margin : 0.3em 0;
+	text-align : right;
+}
+
+a
+{
+	color : #0366d6;
+	text-decoration : none;
+}
+
+a:hover
+{
+	text-decoration : underline;
+}
+
+canvas
+{
+	width : 700px;
+	height : 500px;
+	border : 1px solid #dddddd;	
+}

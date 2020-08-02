@@ -12,14 +12,9 @@ Application.prototype.InitMenu = function (menuDivName)
 {
 	function CreateItem (imgSrc, text)
 	{
-		var mainItem = document.createElement ('div');
-		mainItem.className = 'menuitem';
-		var imgItem = document.createElement ('img');
-		imgItem.src = imgSrc;
-		mainItem.appendChild (imgItem);
-		var textItem = document.createElement ('span');
-		textItem.innerHTML = text;
-		mainItem.appendChild (textItem);
+		var mainItem = $('<div>').addClass ('menuitem');
+		var imgItem = $('<img>').attr ('src', imgSrc).appendTo (mainItem);
+		var textItem = $('<span>').html (text).appendTo (mainItem);
 		var result = {
 			mainItem : mainItem,
 			imgItem : imgItem,
@@ -31,20 +26,18 @@ Application.prototype.InitMenu = function (menuDivName)
 	function AddTitleItem (menuDiv, text)
 	{
 		var item = CreateItem ('images/folder_opened.png', text);
-		menuDiv.appendChild (item.mainItem);
-		var menuItems = document.createElement ('div');
-		menuItems.className = 'subitems';
-		menuDiv.appendChild (menuItems);
+		item.mainItem.appendTo (menuDiv);
+		var menuItems = $('<div>').addClass ('subitems').appendTo (menuDiv);
 		
-		item.mainItem.onclick = function () {
-			if (menuItems.style.display != 'none') {
-				menuItems.style.display = 'none';
-				item.imgItem.src = 'images/folder_closed.png';
+		item.mainItem.click (function () {
+			if (menuItems.is (':visible')) {
+				menuItems.hide ();
+				item.imgItem.attr ('src', 'images/folder_closed.png');
 			} else {
-				menuItems.style.display = 'block';
-				item.imgItem.src = 'images/folder_opened.png';
+				menuItems.show ();
+				item.imgItem.attr ('src', 'images/folder_opened.png');
 			}
-		}
+		});
 		
 		return menuItems;
 	}
@@ -52,13 +45,13 @@ Application.prototype.InitMenu = function (menuDivName)
 	function AddMenuItem (app, menuDiv, text, nodeIndex)
 	{
 		var item = CreateItem ('images/plus.png', text);
-		menuDiv.appendChild (item.mainItem);
-		item.mainItem.onclick = function () {
+		item.mainItem.appendTo (menuDiv);
+		item.mainItem.click (function () {
 			app.CreateNode (nodeIndex);
-		}
+		});
 	}			
 	
-	var menuDiv = document.getElementById (menuDivName);
+	var menuDiv = $('#' + menuDivName);
 	
 	var inputs = AddTitleItem (menuDiv, 'Inputs');
 	AddMenuItem (this, inputs, 'Integer', 0);
@@ -81,4 +74,78 @@ Application.prototype.CreateNode = function (nodeIndex)
 {
 	var createNodeFunc = this.module.cwrap ('CreateNode', null, ['number']);
 	createNodeFunc (nodeIndex);
+}
+
+Application.prototype.ContextMenuRequest = function (mouseX, mouseY, commandsJson, canvasName)
+{
+	function ShowContextMenu (module, mouseX, mouseY, commandsJson, canvasName)
+	{
+		function SendResponse (module, response)
+		{
+			var contextMenuResponseFunc = module.cwrap ('ContextMenuResponse', null, ['number']);
+			contextMenuResponseFunc (response);			
+		}
+		
+		function OpenContextMenu (module, mouseX, mouseY)
+		{
+			var documentBody = $(document.body);
+			var contextMenuDiv = $('<div>').addClass ('contextmenu').appendTo (documentBody);
+			contextMenuDiv.css ('left', (canvasDiv.offset ().left + mouseX) + 'px');
+			contextMenuDiv.css ('top', (canvasDiv.offset ().top + mouseY) + 'px');
+			documentBody.bind ("mousedown", function (event) {
+				event.preventDefault ();
+				if ($(event.target).parents ('.contextmenu').length == 0) {
+					CloseContextMenu ();
+					SendResponse (module, -1);
+				}
+			});
+			return contextMenuDiv;
+		}	
+		
+		function CloseContextMenu ()
+		{
+			var documentBody = $(document.body);
+			documentBody.unbind ("mousedown");
+			contextMenuDiv.remove ();
+		}
+		
+		function AddCommandItems (module, contextMenuDiv, commands)
+		{
+			function AddCommandItem (module, contextMenuDiv, commandName, commandId)
+			{
+				var itemDiv = $('<div>').addClass ('contextmenuitem').html (commandName)
+				itemDiv.appendTo (contextMenuDiv);
+				itemDiv.click (function () {
+					SendResponse (module, commandId);
+					CloseContextMenu ();
+				});
+				return itemDiv;
+			}
+			
+			function AddGroupItem (module, contextMenuDiv, commandName)
+			{
+				var itemDiv = $('<div>').addClass ('contextmenugroupitem').html (commandName)
+				itemDiv.appendTo (contextMenuDiv);
+				return itemDiv;
+			}			
+			
+			var i, command, itemDiv, subItemsDiv;
+			for (i = 0; i < commands.length; i++) {
+				command = commands[i];
+				if (command.commands === undefined) {
+					itemDiv = AddCommandItem (module, contextMenuDiv, command.name, command.id);
+				} else {
+					itemDiv = AddGroupItem (module, contextMenuDiv, command.name);
+					subItemsDiv = $('<div>').addClass ('contextmenusubitems').appendTo (contextMenuDiv);
+					AddCommandItems (module, subItemsDiv, command.commands);
+				}
+			}
+		}
+		
+		var canvasDiv = $('#' + canvasName);
+		var contextMenuDiv = OpenContextMenu (module, mouseX, mouseY);
+		AddCommandItems (module, contextMenuDiv, commandsJson.commands);
+	}
+	
+	ShowContextMenu (this.module, mouseX, mouseY, commandsJson, canvasName);
 }

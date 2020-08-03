@@ -19,30 +19,55 @@
 			application.ContextMenuRequest (mouseX, mouseY, commandJson, 'canvas');
 		}
 
-		window.onload = function ()
+		function OnResize ()
+		{
+			var windowObj = $(window);
+			var canvas = $('#canvas');
+			
+			canvas.hide ();
+			var leftDiv = $('#left');
+			var newWidth = windowObj.width () - leftDiv.width () - 32;
+			var newHeight = windowObj.height () - 26;
+			application.ResizeCanvas (newWidth, newHeight);
+			canvas.show ();
+		}
+		
+		function OnReady ()
 		{
 			application.InitMenu ('menu');
 		}
+
+		function OnRuntimeInitialized (module)
+		{
+			application.InitModule (Module);
+		}
+		
+		function OnWindowCreated ()
+		{
+			OnResize ();
+		}
+		
+		$(window).resize (function () {
+			OnResize ();
+		});
+		
+		$(document).ready (function () {
+			OnReady ();
+		});
 	</script>
 </head>
 
 <body>
-	<div class="frame">
-		<div class="title">VisualScriptEngineWeb</div>
-		<div class="text">This is a demo of the <a href="https://emscripten.org">Emscripten</a> port of <a href="https://github.com/kovacsv/VisualScriptEngine">VisualScriptEngine</a>. You can add nodes from the list on the left and then you can connect the nodes on the editor canvas. More information on GitHub: <a href="https://github.com/kovacsv/VisualScriptEngineWeb">VisualScriptEngineWeb</a>.</div>
-		<div class="editor">
-			<div class="menu" id="menu">
-			</div>
-			<canvas id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
-			<div class="hint">
-				Keyboard shortcuts: Escape, Delete, Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+G, Ctrl+Z, Ctrl+Y.
-			</div>
+	<div class="editor">
+		<div class="left" id="left">
+			<div class="menu" id="menu"></div>
 		</div>
+		<canvas id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
 	</div>
 	<script type='text/javascript'>
 		var Module = {
 			onRuntimeInitialized : function () {
-				application.InitModule (Module);
+				OnRuntimeInitialized ();
 			},
 			canvas : (function () {
 				return document.getElementById ('canvas');

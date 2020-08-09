@@ -33,14 +33,24 @@ div.menu
 
 }
 
-div.menuitem
+input.nodetreesearch
+{
+	width : 100%;
+	margin-bottom : 10px;
+	padding : 5px;
+	border : 1px solid #dddddd;
+	box-sizing : border-box;
+	outline : none;
+}
+
+div.nodetreeitem
 {
 	padding : 5px 10px;
 	cursor : pointer;
 	user-select : none;
 }
 
-div.subitems
+div.nodetreesubitems
 {
 	margin-left : 20px;
 }
@@ -54,11 +64,13 @@ div.links
 div.contextmenu
 {
 	color : #000000;
-	background : #f2f2f2;
+	background : #ffffff;
 	position : absolute;
 	left : 0px;
 	top : 0px;
 	border : 1px solid #cccccc;
+	border-radius : 5px;
+	white-space : nowrap;
 	overflow : auto;
 }
 
@@ -72,6 +84,7 @@ div.contextmenuitem
 div.contextmenugroupitem
 {
 	padding : 6px 15px;
+	user-select : none;
 }
 
 div.contextmenuitem:hover
@@ -110,9 +123,10 @@ a:hover
 
 #canvas
 {
-	border : 1px solid #dddddd;
 	margin-left : 240px;
 	margin-top : 10px;
+	border : 1px solid #dddddd;
+	outline : none;
 }
 
 @media only screen and (max-width : 1000px)

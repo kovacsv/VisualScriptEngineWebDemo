@@ -8,6 +8,7 @@
 	<script type="text/javascript" src="jquery/jquery-3.5.1.min.js"></script>
 
 	<link rel="stylesheet" type="text/css" href="style/style.css">
+	<script type="text/javascript" src="script/popupdiv.js"></script>
 	<script type="text/javascript" src="script/contextmenu.js"></script>
 	<script type="text/javascript" src="script/nodetree.js"></script>
 	<script type="text/javascript" src="script/application.js"></script>
@@ -19,17 +20,12 @@
 		{
 			var commandsJsonStr = UTF8ToString (commandsJsonFromCpp);
 			var commandJson = JSON.parse (commandsJsonStr);
-			
-			var canvasDiv = $('#canvas');
-			var positionX = canvasDiv.offset ().left + mouseX
-			var positionY = canvasDiv.offset ().top + mouseY;
-			
-			application.ContextMenuRequest (positionX, positionY, commandJson);
+			application.OpenContextMenu (mouseX, mouseY, commandJson);
 		}
 		
 		function OnDoubleClick (mouseX, mouseY)
 		{
-			// TODO: handle double click
+			application.OpenNodeTreePopUp (mouseX, mouseY);
 		}		
 
 		function OnResize ()

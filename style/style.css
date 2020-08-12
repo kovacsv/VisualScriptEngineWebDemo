@@ -61,17 +61,20 @@ div.links
 	margin-top : 40px;
 }
 
+div.popup
+{
+	position : absolute;
+	left : 0px;
+	top : 0px;
+	white-space : nowrap;
+	overflow : auto;
+}
+
 div.contextmenu
 {
 	color : #000000;
 	background : #ffffff;
-	position : absolute;
-	left : 0px;
-	top : 0px;
 	border : 1px solid #cccccc;
-	border-radius : 5px;
-	white-space : nowrap;
-	overflow : auto;
 }
 
 div.contextmenuitem
@@ -97,9 +100,14 @@ div.contextmenusubitems div.contextmenuitem
 	padding-left : 30px;
 }
 
-span.iconplaceholder
+div.nodetreepopup
 {
-	width : 21px;
+	color : #000000;
+	background : #ffffff;
+	width : 220px;
+	max-height : 300px;
+	padding : 8px;
+	border : 1px solid #cccccc;
 }
 
 img.icon

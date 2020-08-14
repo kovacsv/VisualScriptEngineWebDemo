@@ -4,6 +4,8 @@ html, body
 	background : #ffffff;
 	font-size : 14px;
 	font-family : Arial, cursive;
+	width : 100%;
+	height : 100%;
 	margin : 0px;
 	padding : 0px;
 }
@@ -57,8 +59,10 @@ div.nodetreesubitems
 
 div.links
 {
+	position : absolute;
+	top : 20px;
+	right : 20px;
 	text-align : center;
-	margin-top : 40px;
 }
 
 div.popup
@@ -98,6 +102,64 @@ div.contextmenuitem:hover
 div.contextmenusubitems div.contextmenuitem
 {
 	padding-left : 30px;
+}
+
+div.parametersettings
+{
+	color : #000000;
+	background : #ffffff;
+	border : 1px solid #cccccc;
+}
+
+div.parametersettingstitle
+{
+	font-size : 1.2em;
+	padding : 10px;
+}
+
+table.parametertable
+{
+	margin-bottom : 5px;
+}
+
+table.parametertable td
+{
+	padding : 5px 10px;
+}
+
+table.parametertable input
+{
+	padding : 5px;
+	border : 1px solid #dddddd;
+	box-sizing : border-box;
+	outline : none;
+}
+
+table.parametertable select
+{
+	width : 100%;
+	padding : 5px;
+	border : 1px solid #dddddd;
+	box-sizing : border-box;
+	outline : none;
+}
+
+div.parameterbuttons
+{
+	margin : 0px 10px;
+	padding : 10px 0px;
+	border-top : 1px solid #cccccc;
+	overflow : auto;
+}
+
+div.parameterbutton
+{
+	background : #eeeeee;
+	padding : 5px 10px;
+	margin-left : 10px;
+	border-radius : 5px;
+	cursor : pointer;
+	float : right;
 }
 
 div.nodetreepopup

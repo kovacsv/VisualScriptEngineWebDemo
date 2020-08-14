@@ -60,12 +60,29 @@ Application.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
 	var positionX = this.canvas.offset ().left + mouseX;
 	var positionY = this.canvas.offset ().top + mouseY;	
 	
-	var module = this.module;
+	var myThis = this;
 	var contextMenu = new ContextMenu (this.canvas, commands.commands, function (commandId) {
-		var contextMenuResponseFunc = module.cwrap ('ContextMenuResponse', null, ['number']);
+		var contextMenuResponseFunc = myThis.module.cwrap ('ContextMenuResponse', null, ['number']);
 		contextMenuResponseFunc (commandId);			
 	});
 	contextMenu.Open (positionX, positionY);
+};
+
+Application.prototype.OpenSettingsDialog = function (parameters)
+{
+	var positionX = this.canvas.offset ().left + this.canvas.width () / 2;
+	var positionY = this.canvas.offset ().top + this.canvas.height () / 2;
+	
+	var myThis = this;
+	var parameterSettings = new ParameterSettings (this.canvas, parameters.parameters, function (changedParameters) {
+		var responseString = '';
+		if (changedParameters != null) {
+			responseString = JSON.stringify (changedParameters);
+		}
+		var parameterSettingsResponseFunc = myThis.module.cwrap ('ParameterSettingsResponse', null, ['string']);
+		parameterSettingsResponseFunc (responseString);
+	});
+	parameterSettings.Open (positionX, positionY);
 };
 
 Application.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)

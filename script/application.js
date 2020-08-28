@@ -2,11 +2,21 @@ var Application = function ()
 {
 	this.canvas = null;
 	this.module = null;
+	this.appInterface = null;
 };
 
 Application.prototype.InitCanvas = function (canvas)
 {
 	this.canvas = canvas;
+};
+
+Application.prototype.InitModule = function (module)
+{
+	this.module = module;
+	this.appInterface = new AppInterface (this.module);
+	this.InitDragAndDrop ();
+	this.InitKeyboardEvents ();	
+	this.InitFileInput ();
 };
 
 Application.prototype.InitDragAndDrop = function ()
@@ -22,16 +32,9 @@ Application.prototype.InitDragAndDrop = function ()
 		var data = ev.originalEvent.dataTransfer.getData ('nodeindex');
 		if (data.length > 0) {
 			var nodeIndex = parseInt (data);
-			myThis.CreateNode (nodeIndex, mouseX, mouseY);
+			myThis.appInterface.CreateNode (nodeIndex, mouseX, mouseY);
 		}
 	});
-};
-
-Application.prototype.InitModule = function (module)
-{
-	this.module = module;
-	this.InitDragAndDrop ();
-	this.InitKeyboardEvents ();	
 };
 
 Application.prototype.InitKeyboardEvents = function ()
@@ -46,64 +49,167 @@ Application.prototype.InitKeyboardEvents = function ()
 		overCanvas = false;
 	});
 	
-	var handleKeyPressFunc = this.module.cwrap ('HandleKeyPress', null, ['string']);
-	
 	$(window).keydown (function (ev) {
 		if (!overCanvas) {
 			return;
 		}
-		var keyCode = null;
+		var command = null;
 		var isControlPressed = ev.ctrlKey;
+		var isShiftPressed = ev.shiftKey;
 		if (isControlPressed) {
 			if (ev.which == 65) {
-				keyCode = 'SelectAll';
+				command = 'SelectAll';
 			} else if (ev.which == 67) {
-				keyCode = 'Copy';
+				command = 'Copy';
 			} else if (ev.which == 86) {
-				keyCode = 'Paste';
+				command = 'Paste';
 			} else if (ev.which == 71) {
-				keyCode = 'Group';
+				if (isShiftPressed) {
+					command = 'Ungroup';
+				} else {
+					command = 'Group';
+				}
 			} else if (ev.which == 90) {
-				keyCode = 'Undo';
-			} else if (ev.which == 89) {
-				keyCode = 'Redo';
+				if (isShiftPressed) {
+					command = 'Redo';
+				} else {
+					command = 'Undo';
+				}
 			}
 		} else {
 			if (ev.which == 8 || ev.which == 46) {
-				keyCode = 'Delete';
+				command = 'Delete';
 			} else if (ev.which == 27) {
-				keyCode = 'Escape';
+				command = 'Escape';
 			}
 		}
-		if (keyCode != null) {
-			handleKeyPressFunc (keyCode);
+		if (command != null) {
+			myThis.ExecuteCommand (command);
 			ev.preventDefault();
 		}
 	});
 };
 
-Application.prototype.InitMenu = function (menuDivName)
+Application.prototype.InitFileInput = function ()
 {
-	var menuDiv = $('#' + menuDivName);
+	var myThis = this;
+	var file = $('#file');
+	file.on ('change', function () {
+		var files = file.prop('files');
+		if (files.length == 0) {
+			return;
+		}
+		var reader = new FileReader ();
+		reader.onloadend = function (ev) {
+			if (ev.target.readyState == FileReader.DONE) {
+				myThis.OpenFile (ev.target.result);
+			}
+		};
+		reader.readAsArrayBuffer (files[0]);		
+		
+	});
+};
+
+Application.prototype.InitControls = function (controlsDivName)
+{
+	function AddControl (parentDiv, icon, toolTipText, toolTipSubText, onClick)
+	{
+		var buttonDiv = $('<div>').addClass ('controlbutton').appendTo (parentDiv);
+		var iconName = 'images/command_icons/' + icon + '.png';
+		var whiteIconName = 'images/command_icons/' + icon + '_White.png';
+		var buttonImg = null;
+		if (icon != null) {
+			buttonImg = $('<img>').attr ('src', iconName).attr ('alt', toolTipText).appendTo (buttonDiv);
+		} else {
+			buttonDiv.html (toolTipText);
+		}
+		
+		var documentBody = $(document.body);
+		var toolTip = null;
+		buttonDiv.hover (
+			function () {
+				buttonImg.attr ('src', whiteIconName);
+				var buttonOffset = buttonDiv.offset ();
+				toolTip = $('<div>').addClass ('tooltip').appendTo (documentBody);
+				$('<div>').addClass ('tooltiptext').html (toolTipText).appendTo (toolTip);
+				if (toolTipSubText != null) {
+					$('<div>').addClass ('tooltipsubtext').html (toolTipSubText).appendTo (toolTip);
+				}
+				var topOffset = buttonOffset.top + buttonDiv.outerHeight () + 10;
+				var leftOffset = buttonOffset.left + buttonDiv.outerWidth () / 2 - toolTip.outerWidth () / 2;
+				if (leftOffset < 5) {
+					leftOffset = 5;
+				}
+				toolTip.offset ({
+					top : topOffset,
+					left : leftOffset
+				});
+			},
+			function () {
+				buttonImg.attr ('src', iconName);
+				toolTip.remove ();
+			}
+		);
+		
+		buttonDiv.click (function () {
+			onClick ();
+		});
+	}	
+	
+	function AddCommandControl (app, parentDiv, icon, toolTipText, toolTipSubText, command)
+	{
+		AddControl (parentDiv, icon, toolTipText, toolTipSubText, function () {
+			app.ExecuteCommand (command);
+		});
+	}
+	
+	function AddSeparator (parentDiv)
+	{
+		$('<div>').addClass ('controlseparator').appendTo (parentDiv);
+	}	
+	
+	var myThis = this;
+	var controlsDiv = $('#' + controlsDivName);
+	AddControl (controlsDiv, 'New', 'New', null, function () {
+		window.open ('.', '_blank');
+	});
+	AddControl (controlsDiv, 'Open', 'Open', null, function () {
+		myThis.ShowOpenFileDialog ();
+	});
+	AddCommandControl (this, controlsDiv, 'Save', 'Save', null, 'Save');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'Undo', 'Undo', 'Ctrl+Z', 'Undo');
+	AddCommandControl (this, controlsDiv, 'Redo', 'Redo', 'Ctrl+Shift+Z', 'Redo');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'Copy', 'Copy', 'Ctrl+C', 'Copy');
+	AddCommandControl (this, controlsDiv, 'Paste', 'Paste', 'Ctrl+V', 'Paste');
+	AddCommandControl (this, controlsDiv, 'Delete', 'Delete', 'Delete Key', 'Delete');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'Group', 'Group', 'Ctrl+G', 'Group');
+	AddCommandControl (this, controlsDiv, 'Ungroup', 'Ungroup', 'Ctrl+Shift+G', 'Ungroup');
+};
+
+Application.prototype.InitNodeTree = function (nodeTreeDivName, searchInputName)
+{
+	var menuDiv = $('#' + nodeTreeDivName);
+	var searchInput = $('#' + searchInputName);
 	var myThis = this;
 	var nodeTree = new NodeTree (menuDiv, function (nodeIndex) {
 		var positionX = myThis.canvas.width () / 2.0;
 		var positionY = myThis.canvas.height () / 2.0;
-		myThis.CreateNode (nodeIndex, positionX, positionY);
+		myThis.appInterface.CreateNode (nodeIndex, positionX, positionY);
 	});
-	nodeTree.BuildAsMenu ();
+	nodeTree.BuildAsMenu (searchInput);
+};
+
+Application.prototype.ExecuteCommand = function (command)
+{
+	this.appInterface.ExecuteCommand (command);
 };
 
 Application.prototype.ResizeCanvas = function (width, height)
 {
-	var resizeWindowFunc = Module.cwrap ('ResizeWindow', null, ['number', 'number']);
-	resizeWindowFunc (width, height);
-};
-
-Application.prototype.CreateNode = function (nodeIndex, positionX, positionY)
-{
-	var createNodeFunc = this.module.cwrap ('CreateNode', null, ['number', 'number', 'number']);
-	createNodeFunc (nodeIndex, positionX, positionY);
+	this.appInterface.ResizeWindow (width, height);
 };
 
 Application.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
@@ -113,8 +219,7 @@ Application.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
 	
 	var myThis = this;
 	var contextMenu = new ContextMenu (this.canvas, commands.commands, function (commandId) {
-		var contextMenuResponseFunc = myThis.module.cwrap ('ContextMenuResponse', null, ['number']);
-		contextMenuResponseFunc (commandId);			
+		myThis.appInterface.ContextMenuResponse (commandId);			
 	});
 	contextMenu.Open (positionX, positionY);
 };
@@ -130,8 +235,7 @@ Application.prototype.OpenSettingsDialog = function (parameters)
 		if (changedParameters != null) {
 			responseString = JSON.stringify (changedParameters);
 		}
-		var parameterSettingsResponseFunc = myThis.module.cwrap ('ParameterSettingsResponse', null, ['string']);
-		parameterSettingsResponseFunc (responseString);
+		myThis.appInterface.ParameterSettingsResponse (responseString);
 	});
 	parameterSettings.Open (positionX, positionY);
 };
@@ -143,7 +247,43 @@ Application.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)
 	
 	var myThis = this;
 	var nodeTreePopUp = new NodeTreePopUp (this.canvas, function (nodeIndex) {
-		myThis.CreateNode (nodeIndex, mouseX, mouseY);
+		myThis.appInterface.CreateNode (nodeIndex, mouseX, mouseY);
 	});
 	nodeTreePopUp.Open (positionX, positionY);
+};
+
+Application.prototype.ShowOpenFileDialog = function ()
+{
+	var file = document.getElementById ('file');
+	file.click ();
+};
+
+Application.prototype.OpenFile = function (fileBuffer)
+{
+	var buffer = new Int8Array (fileBuffer);
+	var heapPtr = this.module._malloc (buffer.length);
+	var heapBuffer = new Int8Array (HEAP8.buffer, heapPtr, buffer.length);
+	heapBuffer.set (buffer);
+	this.appInterface.OpenFile (heapBuffer.byteOffset, buffer.length);
+	this.module._free (heapBuffer.byteOffset);
+};
+
+Application.prototype.SaveFile = function (data, size)
+{
+	var dataArr = new Int8Array (size);
+	var i;
+	for (i = 0; i < size; i++) {
+		dataArr[i] = HEAP8[data + i];
+	}
+	
+	var blob = new Blob ([dataArr], {type: "octet/stream"});
+	var url = window.URL.createObjectURL (blob);
+
+	var link = document.createElement ('a');
+	document.body.appendChild (link);
+	link.href = url;
+	link.download = 'Untitled.ne';
+	link.click ();
+	window.URL.revokeObjectURL (url);
+	document.body.removeChild (link);	
 };

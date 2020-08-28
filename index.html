@@ -4,14 +4,17 @@
 <head>
 	<meta http-equiv="content-type" content="text/html;charset=utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no">
-	
-	<script type="text/javascript" src="jquery/jquery-3.5.1.min.js"></script>
+
+	<script>if (typeof module === 'object') { window.module = module; module = undefined; }</script>
 
 	<link rel="stylesheet" type="text/css" href="style/style.css">
+	
+	<script type="text/javascript" src="jquery/jquery-3.5.1.min.js"></script>
 	<script type="text/javascript" src="script/popupdiv.js"></script>
 	<script type="text/javascript" src="script/contextmenu.js"></script>
 	<script type="text/javascript" src="script/parametersettings.js"></script>
 	<script type="text/javascript" src="script/nodetree.js"></script>
+	<script type="text/javascript" src="script/appinterface.js"></script>
 	<script type="text/javascript" src="script/application.js"></script>
 	
 	<script type='text/javascript'>
@@ -34,19 +37,29 @@
 		function OnDoubleClick (mouseX, mouseY)
 		{
 			application.OpenNodeTreePopUp (mouseX, mouseY);
-		}		
+		}
+
+		function SaveFile (data, size)
+		{
+			application.SaveFile (data, size);
+		}
 
 		function OnResize ()
 		{
 			var windowObj = $(window);
-			var newWidth = windowObj.width () - 240 - 12;
-			var newHeight = windowObj.height () - 22;
+			var canvasObj = $('#canvas');
+			var nodeTreeObj = $('#nodetree');
+			var canvasOffset = canvasObj.offset ();
+			var newWidth = windowObj.width () - canvasOffset.left - 12;
+			var newHeight = windowObj.height () - canvasOffset.top - 12;
+			nodeTreeObj.height (windowObj.height () - nodeTreeObj.offset ().top - 10);
 			application.ResizeCanvas (newWidth, newHeight);
 		}
 		
 		function OnReady ()
 		{
-			application.InitMenu ('menu');
+			application.InitControls ('controls');
+			application.InitNodeTree ('nodetree', 'nodetreesearch');
 		}
 
 		function OnRuntimeInitialized (module)
@@ -73,15 +86,24 @@
 
 <body>
 	<div class="editor">
-		<div class="left" id="left">
-			<div class="leftcontainer" id="leftcontainer">
-				<div class="menu" id="menu"></div>
+		<div class="header">
+			<div class="headerleft">VISUAL SCRIPT ENGINE</div>
+			<div class="headerright"><a href="https://github.com/kovacsv/VisualScriptEngineWeb"><img src="images/github.png" alt="GitHub"></a></div>
+		</div>
+		<div class="controls" id="controls">
+			<input type="file" id="file" accept=".ne" style="display:none"></input>
+		</div>
+		<div class="left">
+			<div class="leftcontent">
+				<div class="nodetreesearchdiv">
+					<input type="text" id="nodetreesearch" class="nodetreesearch" placeholder="Search Nodes...">
+				</div>
+				<div class="nodetree thinscrollbar" id="nodetree"></div>
 			</div>
 		</div>
-		<canvas id="canvas" tabindex="1" oncontextmenu="event.preventDefault ()"></canvas>
-	</div>
-	<div class="links">
-		<a href="https://github.com/kovacsv/VisualScriptEngineWeb"><img src="images/github.png"/></a>
+		<div class="right">
+			<canvas id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
+		</div>
 	</div>
 	<script type='text/javascript'>
 		var Module = {

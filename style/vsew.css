@@ -8,6 +8,7 @@ html, body
 	height : 100%;
 	margin : 0px;
 	padding : 0px;
+	overflow : hidden;
 }
 
 div.editor
@@ -27,6 +28,13 @@ div.header img
 	display : block;
 }
 
+div.header img.logo
+{
+	float : left;
+	margin-top : -2px;
+	margin-right : 8px;
+}
+
 div.headerleft
 {
 	color : #333333;
@@ -35,9 +43,15 @@ div.headerleft
 	float : left;
 }
 
+div.headerleft a
+{
+	color : #333333;
+	text-decoration : none;
+}
+
 div.headerright
 {
-	padding : 12px 10px;
+	padding : 12px 9px;
 	float : right;
 }
 
@@ -72,6 +86,8 @@ div.controlseparator
 
 div.controlbutton img
 {
+	width : 18px;
+	height : 18px;
 	display : block;
 }
 
@@ -247,6 +263,11 @@ div.nodetreepopup
 	border : 1px solid #cccccc;
 }
 
+div.nodetreepopupsearchdiv
+{
+	margin : 5px;
+}
+
 img.nodetreeicon
 {
 	width : 18px;
@@ -299,7 +320,7 @@ a:hover
 	text-decoration : underline;
 }
 
-#canvas
+canvas.editor
 {
 	border : 1px solid #dddddd;
 	outline : none;

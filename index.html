@@ -4,46 +4,22 @@
 <head>
 	<meta http-equiv="content-type" content="text/html;charset=utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no">
+	<title>VisualScriptEngineWeb</title>
 
 	<script>if (typeof module === 'object') { window.module = module; module = undefined; }</script>
 
-	<link rel="stylesheet" type="text/css" href="style/style.css">
+	<link rel="stylesheet" type="text/css" href="style/vsew.css">
 	
 	<script type="text/javascript" src="jquery/jquery-3.5.1.min.js"></script>
-	<script type="text/javascript" src="script/popupdiv.js"></script>
-	<script type="text/javascript" src="script/contextmenu.js"></script>
-	<script type="text/javascript" src="script/parametersettings.js"></script>
-	<script type="text/javascript" src="script/nodetree.js"></script>
-	<script type="text/javascript" src="script/appinterface.js"></script>
-	<script type="text/javascript" src="script/application.js"></script>
+	<script type="text/javascript" src="editor/popupdiv.js"></script>
+	<script type="text/javascript" src="editor/contextmenu.js"></script>
+	<script type="text/javascript" src="editor/parametersettings.js"></script>
+	<script type="text/javascript" src="editor/nodetree.js"></script>
+	<script type="text/javascript" src="editor/editorinterface.js"></script>
+	<script type="text/javascript" src="editor/nodeeditor.js"></script>
+	<script type="text/javascript" src="editor/editormain.js"></script>
 	
 	<script type='text/javascript'>
-		var application = new Application ();
-
-		function ContextMenuRequest (mouseX, mouseY, commandsJsonFromCpp)
-		{
-			var commandsJsonStr = UTF8ToString (commandsJsonFromCpp);
-			var commandJson = JSON.parse (commandsJsonStr);
-			application.OpenContextMenu (mouseX, mouseY, commandJson);
-		}
-		
-		function ParameterSettingsRequest (parametersJsonFromCpp)
-		{
-			var parametersJsonStr = UTF8ToString (parametersJsonFromCpp);
-			var parametersJson = JSON.parse (parametersJsonStr);
-			application.OpenSettingsDialog (parametersJson);
-		}		
-		
-		function OnDoubleClick (mouseX, mouseY)
-		{
-			application.OpenNodeTreePopUp (mouseX, mouseY);
-		}
-
-		function SaveFile (data, size)
-		{
-			application.SaveFile (data, size);
-		}
-
 		function OnResize ()
 		{
 			var windowObj = $(window);
@@ -52,34 +28,43 @@
 			var canvasOffset = canvasObj.offset ();
 			var newWidth = windowObj.width () - canvasOffset.left - 12;
 			var newHeight = windowObj.height () - canvasOffset.top - 12;
-			nodeTreeObj.height (windowObj.height () - nodeTreeObj.offset ().top - 10);
-			application.ResizeCanvas (newWidth, newHeight);
+			nodeTreeObj.outerHeight (windowObj.height () - nodeTreeObj.offset ().top - 10);
+			editor.ResizeCanvas (newWidth, newHeight);
 		}
 		
-		function OnReady ()
+		function OnRuntimeInitialized ()
 		{
-			application.InitControls ('controls');
-			application.InitNodeTree ('nodetree', 'nodetreesearch');
-		}
 
-		function OnRuntimeInitialized (module)
-		{
-			var canvasDiv = $('#canvas');
-			application.InitCanvas (canvasDiv)
-			application.InitModule (Module);
 		}
 		
-		function OnWindowCreated ()
+		function OnAppInitialized (nodeTreeJsonFromCpp)
 		{
+			var nodeTreeJsonStr = UTF8ToString (nodeTreeJsonFromCpp);
+			var nodeTree = JSON.parse (nodeTreeJsonStr);
+			var uiElements = {
+				canvas : $('#canvas'),
+				controls : $('#controls'),
+				searchDiv : $('#nodetreesearchdiv'),
+				nodeTree : $('#nodetree'),
+				fileInput : $('#file')
+			};
+			var settings = {
+				nodeTree : nodeTree,
+				fileExtension : '.ne'
+			};
+			editor.Init (Module, settings, uiElements);
+			
 			OnResize ();
 		}
+		
+		function OnValuesRecalculated (result)
+		{
+			var resultStr = UTF8ToString (result);
+			console.log (resultStr);
+		}		
 		
 		$(window).resize (function () {
 			OnResize ();
-		});
-		
-		$(document).ready (function () {
-			OnReady ();
 		});
 	</script>
 </head>
@@ -87,22 +72,20 @@
 <body>
 	<div class="editor">
 		<div class="header">
-			<div class="headerleft">VISUAL SCRIPT ENGINE</div>
+			<div class="headerleft"><a href="."><img class="logo" src="images/vse.png"> VISUAL SCRIPT ENGINE</a></div>
 			<div class="headerright"><a href="https://github.com/kovacsv/VisualScriptEngineWeb"><img src="images/github.png" alt="GitHub"></a></div>
 		</div>
 		<div class="controls" id="controls">
-			<input type="file" id="file" accept=".ne" style="display:none"></input>
+			<input type="file" id="file" style="display:none"></input>
 		</div>
 		<div class="left">
 			<div class="leftcontent">
-				<div class="nodetreesearchdiv">
-					<input type="text" id="nodetreesearch" class="nodetreesearch" placeholder="Search Nodes...">
-				</div>
+				<div class="nodetreesearchdiv" id="nodetreesearchdiv"></div>
 				<div class="nodetree thinscrollbar" id="nodetree"></div>
 			</div>
 		</div>
 		<div class="right">
-			<canvas id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
+			<canvas class="editor" id="canvas" oncontextmenu="event.preventDefault ()"></canvas>
 		</div>
 	</div>
 	<script type='text/javascript'>

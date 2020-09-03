@@ -1,25 +1,114 @@
-var Application = function ()
+var NodeEditor = function ()
 {
-	this.canvas = null;
 	this.module = null;
-	this.appInterface = null;
+	this.canvas = null;
+	this.settings = null;
+	this.editorInterface = null;
 };
 
-Application.prototype.InitCanvas = function (canvas)
-{
-	this.canvas = canvas;
-};
-
-Application.prototype.InitModule = function (module)
+NodeEditor.prototype.Init = function (module, settings, uiElements)
 {
 	this.module = module;
-	this.appInterface = new AppInterface (this.module);
+	this.canvas = uiElements.canvas;
+	this.settings = settings;
+	this.editorInterface = new EditorInterface (this.module);
+
+	this.InitControls (uiElements.controls);
+	this.InitNodeTree (uiElements.nodeTree, uiElements.searchDiv);
 	this.InitDragAndDrop ();
 	this.InitKeyboardEvents ();	
-	this.InitFileInput ();
+	this.InitFileInput (uiElements.fileInput);
 };
 
-Application.prototype.InitDragAndDrop = function ()
+NodeEditor.prototype.InitControls = function (controlsDiv)
+{
+	function AddControl (parentDiv, icon, toolTipText, toolTipSubText, onClick)
+	{
+		var buttonDiv = $('<div>').addClass ('controlbutton').appendTo (parentDiv);
+		var iconName = 'images/command_icons/' + icon + '.png';
+		var whiteIconName = 'images/command_icons/' + icon + '_White.png';
+		var buttonImg = $('<img>').attr ('src', iconName).attr ('alt', toolTipText).appendTo (buttonDiv);
+		var documentBody = $(document.body);
+		var hasHover = (window.matchMedia ('(hover : hover)').matches);
+		if (hasHover) {
+			var toolTip = null;
+			buttonDiv.hover (
+				function () {
+					buttonImg.attr ('src', whiteIconName);
+					var buttonOffset = buttonDiv.offset ();
+					toolTip = $('<div>').addClass ('tooltip').appendTo (documentBody);
+					$('<div>').addClass ('tooltiptext').html (toolTipText).appendTo (toolTip);
+					if (toolTipSubText != null) {
+						$('<div>').addClass ('tooltipsubtext').html (toolTipSubText).appendTo (toolTip);
+					}
+					var topOffset = buttonOffset.top + buttonDiv.outerHeight () + 10;
+					var leftOffset = buttonOffset.left + buttonDiv.outerWidth () / 2 - toolTip.outerWidth () / 2;
+					if (leftOffset < 5) {
+						leftOffset = 5;
+					}
+					toolTip.offset ({
+						top : topOffset,
+						left : leftOffset
+					});
+				},
+				function () {
+					buttonImg.attr ('src', iconName);
+					toolTip.remove ();
+				}
+			);
+		}
+		
+		buttonDiv.click (function () {
+			onClick ();
+		});
+	}	
+	
+	function AddCommandControl (app, parentDiv, icon, toolTipText, toolTipSubText, command)
+	{
+		AddControl (parentDiv, icon, toolTipText, toolTipSubText, function () {
+			app.ExecuteCommand (command);
+		});
+	}
+	
+	function AddSeparator (parentDiv)
+	{
+		$('<div>').addClass ('controlseparator').appendTo (parentDiv);
+	}	
+	
+	var myThis = this;
+	AddControl (controlsDiv, 'New', 'New', null, function () {
+		window.open ('.', '_blank');
+	});
+	AddControl (controlsDiv, 'Open', 'Open', null, function () {
+		myThis.ShowOpenFileDialog ();
+	});
+	AddCommandControl (this, controlsDiv, 'Save', 'Save', null, 'Save');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'Undo', 'Undo', 'Ctrl+Z', 'Undo');
+	AddCommandControl (this, controlsDiv, 'Redo', 'Redo', 'Ctrl+Shift+Z', 'Redo');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'NodeSettings', 'Node Settings', 'Ctrl+G', 'SetParameters');
+	AddCommandControl (this, controlsDiv, 'Copy', 'Copy', 'Ctrl+C', 'Copy');
+	AddCommandControl (this, controlsDiv, 'Paste', 'Paste', 'Ctrl+V', 'Paste');
+	AddCommandControl (this, controlsDiv, 'Delete', 'Delete', 'Delete Key', 'Delete');
+	AddSeparator (controlsDiv);
+	AddCommandControl (this, controlsDiv, 'Group', 'Group', 'Ctrl+G', 'Group');
+	AddCommandControl (this, controlsDiv, 'Ungroup', 'Ungroup', 'Ctrl+Shift+G', 'Ungroup');
+};
+
+NodeEditor.prototype.InitNodeTree = function (nodeTreeDiv, searchDiv)
+{
+	var myThis = this;
+	var nodeTree = new NodeTree (nodeTreeDiv, this.settings.nodeTree, function (groupId, nodeId) {
+		var positionX = myThis.canvas.width () / 2.0;
+		var positionY = myThis.canvas.height () / 2.0;
+		myThis.editorInterface.CreateNode (groupId, nodeId, positionX, positionY);
+	});
+	nodeTree.Build (true);
+	nodeTree.InitSearchField (searchDiv);
+};
+
+NodeEditor.prototype.InitDragAndDrop = function ()
 {
 	var myThis = this;
 	this.canvas.on ('dragover', function (ev) {
@@ -29,15 +118,17 @@ Application.prototype.InitDragAndDrop = function ()
 		ev.preventDefault ();
 		var mouseX = ev.clientX - myThis.canvas.offset ().left;
 		var mouseY = ev.clientY - myThis.canvas.offset ().top;
-		var data = ev.originalEvent.dataTransfer.getData ('nodeindex');
-		if (data.length > 0) {
-			var nodeIndex = parseInt (data);
-			myThis.appInterface.CreateNode (nodeIndex, mouseX, mouseY);
+		var groupIdData = ev.originalEvent.dataTransfer.getData ('groupid');
+		var nodeIdData = ev.originalEvent.dataTransfer.getData ('nodeid');
+		if (groupIdData.length > 0 && nodeIdData.length > 0) {
+			var groupId = parseInt (groupIdData);
+			var nodeId = parseInt (nodeIdData);
+			myThis.editorInterface.CreateNode (groupId, nodeId, mouseX, mouseY);
 		}
 	});
 };
 
-Application.prototype.InitKeyboardEvents = function ()
+NodeEditor.prototype.InitKeyboardEvents = function ()
 {
 	var overCanvas = false;
 	
@@ -90,12 +181,12 @@ Application.prototype.InitKeyboardEvents = function ()
 	});
 };
 
-Application.prototype.InitFileInput = function ()
+NodeEditor.prototype.InitFileInput = function (fileInput)
 {
 	var myThis = this;
-	var file = $('#file');
-	file.on ('change', function () {
-		var files = file.prop('files');
+	fileInput.attr ('accept', this.settings.fileExtension);
+	fileInput.on ('change', function () {
+		var files = fileInput.prop('files');
 		if (files.length == 0) {
 			return;
 		}
@@ -106,128 +197,33 @@ Application.prototype.InitFileInput = function ()
 			}
 		};
 		reader.readAsArrayBuffer (files[0]);		
-		
+		fileInput.val ('');
 	});
 };
 
-Application.prototype.InitControls = function (controlsDivName)
+NodeEditor.prototype.ExecuteCommand = function (command)
 {
-	function AddControl (parentDiv, icon, toolTipText, toolTipSubText, onClick)
-	{
-		var buttonDiv = $('<div>').addClass ('controlbutton').appendTo (parentDiv);
-		var iconName = 'images/command_icons/' + icon + '.png';
-		var whiteIconName = 'images/command_icons/' + icon + '_White.png';
-		var buttonImg = null;
-		if (icon != null) {
-			buttonImg = $('<img>').attr ('src', iconName).attr ('alt', toolTipText).appendTo (buttonDiv);
-		} else {
-			buttonDiv.html (toolTipText);
-		}
-		
-		var documentBody = $(document.body);
-		var hasHover = (window.matchMedia ('(hover : hover)').matches);
-		if (hasHover) {
-			var toolTip = null;
-			buttonDiv.hover (
-				function () {
-					buttonImg.attr ('src', whiteIconName);
-					var buttonOffset = buttonDiv.offset ();
-					toolTip = $('<div>').addClass ('tooltip').appendTo (documentBody);
-					$('<div>').addClass ('tooltiptext').html (toolTipText).appendTo (toolTip);
-					if (toolTipSubText != null) {
-						$('<div>').addClass ('tooltipsubtext').html (toolTipSubText).appendTo (toolTip);
-					}
-					var topOffset = buttonOffset.top + buttonDiv.outerHeight () + 10;
-					var leftOffset = buttonOffset.left + buttonDiv.outerWidth () / 2 - toolTip.outerWidth () / 2;
-					if (leftOffset < 5) {
-						leftOffset = 5;
-					}
-					toolTip.offset ({
-						top : topOffset,
-						left : leftOffset
-					});
-				},
-				function () {
-					buttonImg.attr ('src', iconName);
-					toolTip.remove ();
-				}
-			);
-		}
-		
-		buttonDiv.click (function () {
-			onClick ();
-		});
-	}	
-	
-	function AddCommandControl (app, parentDiv, icon, toolTipText, toolTipSubText, command)
-	{
-		AddControl (parentDiv, icon, toolTipText, toolTipSubText, function () {
-			app.ExecuteCommand (command);
-		});
-	}
-	
-	function AddSeparator (parentDiv)
-	{
-		$('<div>').addClass ('controlseparator').appendTo (parentDiv);
-	}	
-	
-	var myThis = this;
-	var controlsDiv = $('#' + controlsDivName);
-	AddControl (controlsDiv, 'New', 'New', null, function () {
-		window.open ('.', '_blank');
-	});
-	AddControl (controlsDiv, 'Open', 'Open', null, function () {
-		myThis.ShowOpenFileDialog ();
-	});
-	AddCommandControl (this, controlsDiv, 'Save', 'Save', null, 'Save');
-	AddSeparator (controlsDiv);
-	AddCommandControl (this, controlsDiv, 'Undo', 'Undo', 'Ctrl+Z', 'Undo');
-	AddCommandControl (this, controlsDiv, 'Redo', 'Redo', 'Ctrl+Shift+Z', 'Redo');
-	AddSeparator (controlsDiv);
-	AddCommandControl (this, controlsDiv, 'Copy', 'Copy', 'Ctrl+C', 'Copy');
-	AddCommandControl (this, controlsDiv, 'Paste', 'Paste', 'Ctrl+V', 'Paste');
-	AddCommandControl (this, controlsDiv, 'Delete', 'Delete', 'Delete Key', 'Delete');
-	AddSeparator (controlsDiv);
-	AddCommandControl (this, controlsDiv, 'Group', 'Group', 'Ctrl+G', 'Group');
-	AddCommandControl (this, controlsDiv, 'Ungroup', 'Ungroup', 'Ctrl+Shift+G', 'Ungroup');
+	this.editorInterface.ExecuteCommand (command);
 };
 
-Application.prototype.InitNodeTree = function (nodeTreeDivName, searchInputName)
+NodeEditor.prototype.ResizeCanvas = function (width, height)
 {
-	var menuDiv = $('#' + nodeTreeDivName);
-	var searchInput = $('#' + searchInputName);
-	var myThis = this;
-	var nodeTree = new NodeTree (menuDiv, function (nodeIndex) {
-		var positionX = myThis.canvas.width () / 2.0;
-		var positionY = myThis.canvas.height () / 2.0;
-		myThis.appInterface.CreateNode (nodeIndex, positionX, positionY);
-	});
-	nodeTree.BuildAsMenu (searchInput);
+	this.editorInterface.ResizeWindow (width, height);
 };
 
-Application.prototype.ExecuteCommand = function (command)
-{
-	this.appInterface.ExecuteCommand (command);
-};
-
-Application.prototype.ResizeCanvas = function (width, height)
-{
-	this.appInterface.ResizeWindow (width, height);
-};
-
-Application.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
+NodeEditor.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
 {
 	var positionX = this.canvas.offset ().left + mouseX;
 	var positionY = this.canvas.offset ().top + mouseY;	
 	
 	var myThis = this;
 	var contextMenu = new ContextMenu (this.canvas, commands.commands, function (commandId) {
-		myThis.appInterface.ContextMenuResponse (commandId);			
+		myThis.editorInterface.ContextMenuResponse (commandId);			
 	});
 	contextMenu.Open (positionX, positionY);
 };
 
-Application.prototype.OpenSettingsDialog = function (parameters)
+NodeEditor.prototype.OpenSettingsDialog = function (parameters)
 {
 	var positionX = this.canvas.offset ().left + this.canvas.width () / 2;
 	var positionY = this.canvas.offset ().top + this.canvas.height () / 2;
@@ -238,40 +234,40 @@ Application.prototype.OpenSettingsDialog = function (parameters)
 		if (changedParameters != null) {
 			responseString = JSON.stringify (changedParameters);
 		}
-		myThis.appInterface.ParameterSettingsResponse (responseString);
+		myThis.editorInterface.ParameterSettingsResponse (responseString);
 	});
 	parameterSettings.Open (positionX, positionY);
 };
 
-Application.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)
+NodeEditor.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)
 {
 	var positionX = this.canvas.offset ().left + mouseX;
 	var positionY = this.canvas.offset ().top + mouseY;		
 	
 	var myThis = this;
-	var nodeTreePopUp = new NodeTreePopUp (this.canvas, function (nodeIndex) {
-		myThis.appInterface.CreateNode (nodeIndex, mouseX, mouseY);
+	var nodeTreePopUp = new NodeTreePopUp (this.canvas, this.settings.nodeTree, function (groupId, nodeId) {
+		myThis.editorInterface.CreateNode (groupId, nodeId, mouseX, mouseY);
 	});
 	nodeTreePopUp.Open (positionX, positionY);
 };
 
-Application.prototype.ShowOpenFileDialog = function ()
+NodeEditor.prototype.ShowOpenFileDialog = function ()
 {
 	var file = document.getElementById ('file');
 	file.click ();
 };
 
-Application.prototype.OpenFile = function (fileBuffer)
+NodeEditor.prototype.OpenFile = function (fileBuffer)
 {
 	var buffer = new Int8Array (fileBuffer);
 	var heapPtr = this.module._malloc (buffer.length);
 	var heapBuffer = new Int8Array (HEAP8.buffer, heapPtr, buffer.length);
 	heapBuffer.set (buffer);
-	this.appInterface.OpenFile (heapBuffer.byteOffset, buffer.length);
+	this.editorInterface.OpenFile (heapBuffer.byteOffset, buffer.length);
 	this.module._free (heapBuffer.byteOffset);
 };
 
-Application.prototype.SaveFile = function (data, size)
+NodeEditor.prototype.SaveFile = function (data, size)
 {
 	var dataArr = new Int8Array (size);
 	var i;
@@ -285,7 +281,7 @@ Application.prototype.SaveFile = function (data, size)
 	var link = document.createElement ('a');
 	document.body.appendChild (link);
 	link.href = url;
-	link.download = 'Untitled.ne';
+	link.download = 'Untitled' + this.settings.fileExtension;
 	link.click ();
 	window.URL.revokeObjectURL (url);
 	document.body.removeChild (link);	

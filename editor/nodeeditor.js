@@ -99,13 +99,16 @@ NodeEditor.prototype.InitControls = function (controlsDiv)
 NodeEditor.prototype.InitNodeTree = function (nodeTreeDiv, searchDiv)
 {
 	var myThis = this;
-	var nodeTree = new NodeTree (nodeTreeDiv, this.settings.nodeTree, function (groupId, nodeId) {
+	var nodeTreeSettings = {
+		dragDrop : true,
+		searchDiv : searchDiv
+	};
+	var nodeTree = new NodeTree (nodeTreeDiv, this.settings.nodeTree, nodeTreeSettings, function (groupId, nodeId) {
 		var positionX = myThis.canvas.width () / 2.0;
 		var positionY = myThis.canvas.height () / 2.0;
 		myThis.editorInterface.CreateNode (groupId, nodeId, positionX, positionY);
 	});
-	nodeTree.Build (true);
-	nodeTree.InitSearchField (searchDiv);
+	nodeTree.Build ();
 };
 
 NodeEditor.prototype.InitDragAndDrop = function ()
@@ -229,7 +232,7 @@ NodeEditor.prototype.OpenSettingsDialog = function (parameters)
 	var positionY = this.canvas.offset ().top + this.canvas.height () / 2;
 	
 	var myThis = this;
-	var parameterSettings = new ParameterSettings (this.canvas, parameters.parameters, function (changedParameters) {
+	var parameterSettings = new ParameterSettings (this.canvas, parameters.parameters, this.settings.customControlCreator, function (changedParameters) {
 		var responseString = '';
 		if (changedParameters != null) {
 			responseString = JSON.stringify (changedParameters);

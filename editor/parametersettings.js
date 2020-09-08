@@ -109,7 +109,9 @@ ParameterSettings.prototype.Open = function (positionX, positionY)
 	this.popUpDiv.Open (positionX, positionY);
 	var popUpDivElem = this.popUpDiv.GetDiv ();
 	popUpDivElem.addClass ('parametersettings');
-	$('<div>').html ('Settings').addClass ('parametersettingstitle').appendTo (popUpDivElem);
+	var titleDiv = $('<div>').addClass ('parametersettingstitle').appendTo (popUpDivElem);
+	$('<img>').attr ('src', 'images/settings.png').appendTo (titleDiv);
+	$('<span>').html ('Settings').appendTo (titleDiv);
 	this.GenerateTable ();
 	this.GenerateButtons ();
 	this.popUpDiv.CenterToElement (this.parentElement);
@@ -152,8 +154,8 @@ ParameterSettings.prototype.GenerateButtons = function ()
 {
 	var popUpDivElem = this.popUpDiv.GetDiv ();
 	var buttonsDiv = $('<div>').addClass ('parameterbuttons').appendTo (popUpDivElem);
-	var okButton = $('<div>').addClass ('parameterbutton').html ('OK').appendTo (buttonsDiv);
-	var cancelButton = $('<div>').addClass ('parameterbutton').html ('Cancel').appendTo (buttonsDiv);
+	var okButton = $('<div>').addClass ('parameterbutton').addClass ('ok').html ('OK').appendTo (buttonsDiv);
+	var cancelButton = $('<div>').addClass ('parameterbutton').addClass ('cancel').html ('Cancel').appendTo (buttonsDiv);
 	
 	var myThis = this;
 	cancelButton.click (function () {

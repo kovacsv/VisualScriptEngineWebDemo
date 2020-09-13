@@ -16,6 +16,13 @@ div.editor
 	
 }
 
+div.splashscreen
+{
+	position : absolute;
+	left : 0px;
+	top : 0px;
+}
+
 div.header
 {
 	color : #000000;
@@ -146,11 +153,15 @@ div.nodetreesubitems div.nodetreeitem
 	padding-left : 20px;
 }
 
+div.nodetreeitem.selected
+{
+	background : #dce6f1;
+}
+
 div.nodetreepopup
 {
 	background : #ffffff;
 	width : 220px;
-	max-height : 300px;
 	border : 1px solid #dddddd;
 	user-select : none;
 }
@@ -158,6 +169,12 @@ div.nodetreepopup
 div.nodetreepopupsearchdiv
 {
 	margin : 5px;
+}
+
+div.nodetreepopupmaindiv
+{
+	max-height : 260px;
+	overflow : auto;
 }
 
 img.nodetreeicon
@@ -261,7 +278,7 @@ table.parametertable input
 
 table.parametertable select
 {
-	width : 100%;
+	width : 200px;
 	padding : 5px;
 	border : 1px solid #dddddd;
 	box-sizing : border-box;

@@ -13,16 +13,19 @@
 
 	<link rel="stylesheet" type="text/css" href="editor/editor.css">
 	<script type="text/javascript" src="editor/popupdiv.js"></script>
+	<script type="text/javascript" src="editor/downloadfile.js"></script>
+	<script type="text/javascript" src="editor/confirmationdialog.js"></script>
 	<script type="text/javascript" src="editor/contextmenu.js"></script>
 	<script type="text/javascript" src="editor/parametersettings.js"></script>
 	<script type="text/javascript" src="editor/nodetree.js"></script>
 	<script type="text/javascript" src="editor/editorinterface.js"></script>
 	<script type="text/javascript" src="editor/nodeeditor.js"></script>
 	<script type="text/javascript" src="editor/editormain.js"></script>
+	<script type="text/javascript" src="editor/delayedexecutor.js"></script>
 	<script type="text/javascript" src="editor/splashscreen.js"></script>
 	
 	<script type='text/javascript'>
-		var splashScreen = new SplashScreen ('editor', 'images/vse.png');
+		var splashScreen = new SplashScreen ('main', 'images/vse.png', 'Please wait while the application is preparing.');
 	
 		function OnResize ()
 		{
@@ -57,6 +60,8 @@
 				fileExtension : '.ne',
 				customControlCreator : function (parentDiv, parameter, onChange) {
 					return false;
+				},
+				customCommandCreator : function (addSeparatorFunc, addCommandFunc) {
 				}
 			};
 			editor.Init (Module, settings, uiElements);
@@ -78,7 +83,7 @@
 </head>
 
 <body>
-	<div class="editor" id="editor">
+	<div class="main" id="main">
 		<div class="header">
 			<div class="headerleft"><a href="."><img class="logo" src="images/vse.png"></a></div>
 			<div class="headerright"><a href="https://github.com/kovacsv/VisualScriptEngineWeb"><img src="images/github.png" alt="GitHub"></a></div>

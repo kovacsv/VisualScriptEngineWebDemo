@@ -1,3 +1,8 @@
+function IsOnMac ()
+{
+	return (window.navigator.platform.indexOf ('Mac') != -1);
+}
+
 var NodeEditor = function ()
 {
 	this.module = null;
@@ -13,14 +18,14 @@ NodeEditor.prototype.Init = function (module, settings, uiElements)
 	this.settings = settings;
 	this.editorInterface = new EditorInterface (this.module);
 
-	this.InitControls (uiElements.controls);
+	this.InitCommands (uiElements.controls);
 	this.InitNodeTree (uiElements.nodeTree, uiElements.searchDiv);
 	this.InitDragAndDrop ();
 	this.InitKeyboardEvents ();	
 	this.InitFileInput (uiElements.fileInput);
 };
 
-NodeEditor.prototype.InitControls = function (controlsDiv)
+NodeEditor.prototype.InitCommands = function (controlsDiv)
 {
 	function AddControl (parentDiv, icon, toolTipText, toolTipSubText, onClick)
 	{
@@ -73,8 +78,13 @@ NodeEditor.prototype.InitControls = function (controlsDiv)
 	function AddSeparator (parentDiv)
 	{
 		$('<div>').addClass ('controlseparator').appendTo (parentDiv);
-	}	
-	
+	}
+
+	var controlKeyText = 'Ctrl';
+	if (IsOnMac ()) {
+		controlKeyText = 'Cmd';
+	}
+
 	var myThis = this;
 	AddControl (controlsDiv, 'New', 'New', null, function () {
 		window.open ('.', '_blank');
@@ -84,16 +94,34 @@ NodeEditor.prototype.InitControls = function (controlsDiv)
 	});
 	AddCommandControl (this, controlsDiv, 'Save', 'Save', null, 'Save');
 	AddSeparator (controlsDiv);
-	AddCommandControl (this, controlsDiv, 'Undo', 'Undo', 'Ctrl+Z', 'Undo');
-	AddCommandControl (this, controlsDiv, 'Redo', 'Redo', 'Ctrl+Shift+Z', 'Redo');
+	AddCommandControl (this, controlsDiv, 'Undo', 'Undo', controlKeyText + '+Z', 'Undo');
+	AddCommandControl (this, controlsDiv, 'Redo', 'Redo', controlKeyText + '+Shift+Z', 'Redo');
 	AddSeparator (controlsDiv);
 	AddCommandControl (this, controlsDiv, 'NodeSettings', 'Node Settings', null, 'SetParameters');
-	AddCommandControl (this, controlsDiv, 'Copy', 'Copy', 'Ctrl+C', 'Copy');
-	AddCommandControl (this, controlsDiv, 'Paste', 'Paste', 'Ctrl+V', 'Paste');
+	AddCommandControl (this, controlsDiv, 'Copy', 'Copy', controlKeyText + '+C', 'Copy');
+	AddCommandControl (this, controlsDiv, 'Paste', 'Paste', controlKeyText + '+V', 'Paste');
 	AddCommandControl (this, controlsDiv, 'Delete', 'Delete', 'Delete Key', 'Delete');
 	AddSeparator (controlsDiv);
-	AddCommandControl (this, controlsDiv, 'Group', 'Group', 'Ctrl+G', 'Group');
-	AddCommandControl (this, controlsDiv, 'Ungroup', 'Ungroup', 'Ctrl+Shift+G', 'Ungroup');
+	AddCommandControl (this, controlsDiv, 'Group', 'Group', controlKeyText + '+G', 'Group');
+	AddCommandControl (this, controlsDiv, 'Ungroup', 'Ungroup', controlKeyText + '+Shift+G', 'Ungroup');
+	
+	if (this.settings.customCommandCreator) {
+		this.settings.customCommandCreator (
+			function () {
+				AddSeparator (controlsDiv);
+			},
+			function (icon, toolTipText, onClick) {
+				AddControl (controlsDiv, icon, toolTipText, null, onClick);
+			}
+		);
+	}
+	
+	window.onbeforeunload = function (ev) {
+		if (myThis.editorInterface.NeedToSave ()) {
+			event.preventDefault ();
+			event.returnValue = '';
+		}
+	};
 };
 
 NodeEditor.prototype.InitNodeTree = function (nodeTreeDiv, searchDiv)
@@ -145,12 +173,16 @@ NodeEditor.prototype.InitKeyboardEvents = function ()
 		overCanvas = false;
 	});
 	
+	var isMac = IsOnMac ();
 	$(window).keydown (function (ev) {
 		if (!overCanvas) {
 			return;
 		}
 		var command = null;
 		var isControlPressed = ev.ctrlKey;
+		if (isMac) {
+			isControlPressed = ev.metaKey;
+		}
 		var isShiftPressed = ev.shiftKey;
 		if (isControlPressed) {
 			if (ev.which == 65) {
@@ -230,9 +262,6 @@ NodeEditor.prototype.OpenContextMenu = function (mouseX, mouseY, commands)
 
 NodeEditor.prototype.OpenSettingsDialog = function (parameters)
 {
-	var positionX = this.canvas.offset ().left + this.canvas.width () / 2;
-	var positionY = this.canvas.offset ().top + this.canvas.height () / 2;
-	
 	var myThis = this;
 	var parameterSettings = new ParameterSettings (this.canvas, parameters.parameters, this.settings.customControlCreator, function (changedParameters) {
 		var responseString = '';
@@ -241,7 +270,7 @@ NodeEditor.prototype.OpenSettingsDialog = function (parameters)
 		}
 		myThis.editorInterface.ParameterSettingsResponse (responseString);
 	});
-	parameterSettings.Open (positionX, positionY);
+	parameterSettings.Open ();
 };
 
 NodeEditor.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)
@@ -258,8 +287,26 @@ NodeEditor.prototype.OpenNodeTreePopUp = function (mouseX, mouseY)
 
 NodeEditor.prototype.ShowOpenFileDialog = function ()
 {
-	var file = document.getElementById ('file');
-	file.click ();
+	function ShowOpenFileDialog ()
+	{
+		var file = document.getElementById ('file');
+		file.click ();			
+	}
+	
+	if (this.editorInterface.NeedToSave ()) {
+		var confirmation = new ConfirmationDialog (this.canvas, {
+			title : 'Open New File?',
+			text : 'Changes you\'ve made may not be saved.',
+			okButtonText : 'Open',
+			cancelButtonText : 'Cancel',
+			onOk : function () {
+				ShowOpenFileDialog ();
+			}
+		});
+		confirmation.Open ();
+	} else {
+		ShowOpenFileDialog ();
+	}
 };
 
 NodeEditor.prototype.OpenFile = function (fileBuffer)
@@ -282,12 +329,6 @@ NodeEditor.prototype.SaveFile = function (data, size)
 	
 	var blob = new Blob ([dataArr], {type: "octet/stream"});
 	var url = window.URL.createObjectURL (blob);
-
-	var link = document.createElement ('a');
-	document.body.appendChild (link);
-	link.href = url;
-	link.download = 'Untitled' + this.settings.fileExtension;
-	link.click ();
+	DownloadFile (url, 'Untitled' + this.settings.fileExtension);
 	window.URL.revokeObjectURL (url);
-	document.body.removeChild (link);	
 };
